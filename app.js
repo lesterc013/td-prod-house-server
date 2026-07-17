@@ -1,6 +1,7 @@
 import express from 'express';
 import indexRouter from './src/routes/indexRouter.js';
 import responseFactory from './src/utils/responseFactory.js';
+import documentsRouter from './src/routes/documentsRouter.js';
 
 const PORT = process.env.SERVER_PORT;
 
@@ -8,6 +9,7 @@ const app = express();
 
 // ROUTES
 app.use('/', indexRouter);
+app.use('/documents', documentsRouter);
 
 // ERROR HANDLER
 app.use((err, req, res, next) => {
