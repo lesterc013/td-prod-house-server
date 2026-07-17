@@ -30,6 +30,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, (error) => {
+  //TODO: Add a check if "db online/connected" line and throw error if not.
   if (error) {
     throw error;
   }
