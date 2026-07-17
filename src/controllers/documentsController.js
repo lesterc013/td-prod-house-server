@@ -10,10 +10,15 @@ import responseFactory from '../utils/responseFactory.js';
 const uploadDocumentsPost = [
   uploadToMemory.single('uploaded_file'),
   async (req, res, next) => {
+    // TODO: Need validate file type is pdf else throw error. Ref: upload.js
+
     // Assuming all good with the file,
     // Store it in "documents" first to get back the id.
     // This will be used as the fk for each record in "chunks" for this document.
 
+    // TODO: Theres an issue where if the pdf file is not saved with text glyphs,
+    // parsing will result in whitespace. How to fix this?
+    // TODO: Should remove the page numbers?
     // Parse the text
     const parser = new PDFParse({ data: req.file.buffer });
     const parseResult = await parser.getText();
