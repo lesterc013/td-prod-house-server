@@ -18,10 +18,9 @@ const uploadDocumentsPost = [
 
     // TODO: Theres an issue where if the pdf file is not saved with text glyphs,
     // parsing will result in whitespace. How to fix this?
-    // TODO: Should remove the page numbers?
     // Parse the text
     const parser = new PDFParse({ data: req.file.buffer });
-    const parseResult = await parser.getText();
+    const parseResult = await parser.getText({ pageJoiner: '' });
     await parser.destroy();
     console.log(parseResult.text);
     // Chunk the text
