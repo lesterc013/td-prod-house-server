@@ -3,8 +3,16 @@ import responseFactory from '../utils/responseFactory.js';
 
 import { PDFParse } from 'pdf-parse';
 import { createWorker } from 'tesseract.js';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 
 const IS_TEXT_PARSABLE_NUM_CHARS_THRESHOLD = 150; // Referenced from netdocuments ocr service.
+// Note: chunk related params are for num of chars per langchain docs.
+const CHUNK_SIZE = 1000;
+const CHUNK_OVERLAP = 200;
+const splitter = new RecursiveCharacterTextSplitter({
+  chunkSize: CHUNK_SIZE,
+  chunkOverlap: CHUNK_OVERLAP,
+});
 
 // After multer processing:
 // req.file.originalname → 'rsn_wiki.pdf'
@@ -62,10 +70,16 @@ const uploadDocumentsPost = [
       parsedText = parseResult.text;
     }
 
-    console.log(`Final parsed text: ${parsedText}`);
+    // console.log(`Final parsed text: ${parsedText}`);
 
     // Chunk the text
+    const chunks = await splitter.splitText(parsedText);
     // For each chunk, get an embedding
+    console.log(`Total chunks: ${chunks.length}`);
+    chunks.forEach((chunk, i) => {
+      console.log(`\n--- Chunk ${i} (${chunk.length} chars) ---`);
+      console.log(chunk);
+    });
     // Upload this record to the "chunks" table along with the correct fk
     res.json(
       responseFactory.createJsonResponse({
