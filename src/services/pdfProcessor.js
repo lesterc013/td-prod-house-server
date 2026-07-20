@@ -1,4 +1,5 @@
 import { PDFParse } from 'pdf-parse';
+import { createWorker } from 'tesseract.js';
 
 const IS_TEXT_PARSABLE_NUM_CHARS_THRESHOLD = 150; // Referenced from netdocuments ocr service.
 // pdf.js (underlying library used to display the pdf contents by pdf-parse defaults to 72dpi
