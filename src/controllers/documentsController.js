@@ -22,6 +22,7 @@ const uploadDocumentsPost = [
     // This will be used as the fk for each record in "chunks" for this document.
 
     // TODO: How to provide some form of loading percentage UI?
+    // TODO: Refactor all the business logic after all main functionality is done.
 
     // Assume can parse out text:
     const buffer = req.file.buffer;
