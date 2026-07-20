@@ -6,6 +6,9 @@ import { createWorker } from 'tesseract.js';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 
 const IS_TEXT_PARSABLE_NUM_CHARS_THRESHOLD = 150; // Referenced from netdocuments ocr service.
+// pdf.js (underlying library used to display the pdf contents by pdf-parse defaults to 72dpi
+// Scaling by 4.17 should make the image 300 dpi to improve OCR results.
+const SCALE_MULTIPLIER_TO_300_DPI = 4.17;
 // Note: chunk related params are for num of chars per langchain docs.
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
@@ -49,11 +52,17 @@ const uploadDocumentsPost = [
       console.log(
         `Avg chars per pg: ${avgCharsPerPage}. Should be image based pdf. Use OCR.`,
       );
+      // TODO: [improve ocr results] Include binarization, noise reduction as improvements
+
+      console.log('Converting pdf pages to pngs..');
       const pngParser = new PDFParse({ data: buffer });
       // .pages is a Screenshot[]
-      const pngs = await pngParser.getScreenshot();
+      const pngs = await pngParser.getScreenshot({
+        scale: SCALE_MULTIPLIER_TO_300_DPI,
+      });
       await pngParser.destroy();
 
+      console.log('Extracting text from pngs..');
       for (let i = 0; i < pngs.pages.length; i++) {
         const pngBuffer = Buffer.from(pngs.pages[i].data);
         // Using Tesseract.js to extract text from images.
@@ -74,12 +83,13 @@ const uploadDocumentsPost = [
 
     // Chunk the text
     const chunks = await splitter.splitText(parsedText);
+    // console.log(`Total chunks: ${chunks.length}`);
+    // chunks.forEach((chunk, i) => {
+    //   console.log(`\n--- Chunk ${i} (${chunk.length} chars) ---`);
+    //   console.log(chunk);
+    // });
     // For each chunk, get an embedding
-    console.log(`Total chunks: ${chunks.length}`);
-    chunks.forEach((chunk, i) => {
-      console.log(`\n--- Chunk ${i} (${chunk.length} chars) ---`);
-      console.log(chunk);
-    });
+    // TODO: Make a fetch to the ollama embedding api
     // Upload this record to the "chunks" table along with the correct fk
     res.json(
       responseFactory.createJsonResponse({
