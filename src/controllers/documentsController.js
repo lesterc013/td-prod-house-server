@@ -1,6 +1,10 @@
 import { uploadToMemory } from '../middleware/upload.js';
-import { PDFParse } from 'pdf-parse';
 import responseFactory from '../utils/responseFactory.js';
+
+import { PDFParse } from 'pdf-parse';
+import { createWorker } from 'tesseract.js';
+
+const IS_TEXT_PARSABLE_NUM_CHARS_THRESHOLD = 150; // Referenced from netdocuments ocr service.
 
 // After multer processing:
 // req.file.originalname → 'rsn_wiki.pdf'
@@ -10,19 +14,55 @@ import responseFactory from '../utils/responseFactory.js';
 const uploadDocumentsPost = [
   uploadToMemory.single('uploaded_file'),
   async (req, res, next) => {
+    console.log('--- PDF Uploaded. Commence parsing ---');
     // TODO: Need validate file type is pdf else throw error. Ref: upload.js
 
     // Assuming all good with the file,
     // Store it in "documents" first to get back the id.
     // This will be used as the fk for each record in "chunks" for this document.
 
-    // TODO: Theres an issue where if the pdf file is not saved with text glyphs,
-    // parsing will result in whitespace. How to fix this?
-    // Parse the text
-    const parser = new PDFParse({ data: req.file.buffer });
+    // TODO: How to provide some form of loading percentage UI?
+
+    // Assume can parse out text:
+    const buffer = req.file.buffer;
+    const parser = new PDFParse({ data: buffer });
     const parseResult = await parser.getText({ pageJoiner: '' });
     await parser.destroy();
-    console.log(parseResult.text);
+
+    const totalChars = parseResult.text.trim().length;
+    const totalPages = parseResult.total;
+    const avgCharsPerPage = Math.floor(totalChars / totalPages);
+
+    let parsedText = '';
+
+    // Use OCR if the pdf did not have text glyphs ie no text parsed out.
+    if (avgCharsPerPage <= IS_TEXT_PARSABLE_NUM_CHARS_THRESHOLD) {
+      console.log(
+        `Avg chars per pg: ${avgCharsPerPage}. Should be image based pdf. Use OCR.`,
+      );
+      const pngParser = new PDFParse({ data: buffer });
+      // .pages is a Screenshot[]
+      const pngs = await pngParser.getScreenshot();
+      await pngParser.destroy();
+
+      for (let i = 0; i < pngs.pages.length; i++) {
+        const pngBuffer = Buffer.from(pngs.pages[i].data);
+        // Using Tesseract.js to extract text from images.
+        const worker = await createWorker('eng');
+        const {
+          data: { text },
+        } = await worker.recognize(pngBuffer);
+
+        // Append every page's OCR-ed text to parsedText.
+        parsedText += text + '\n';
+        await worker.terminate();
+      }
+    } else {
+      parsedText = parseResult.text;
+    }
+
+    console.log(`Final parsed text: ${parsedText}`);
+
     // Chunk the text
     // For each chunk, get an embedding
     // Upload this record to the "chunks" table along with the correct fk
