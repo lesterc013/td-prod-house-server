@@ -4,6 +4,7 @@ import responseFactory from '../utils/responseFactory.js';
 // Services
 import { extractTextFromPdf } from '../services/pdfProcessor.js';
 import { chunkText } from '../services/textChunker.js';
+import { requestEmbedding } from '../services/llm.js';
 
 // After multer processing:
 // req.file.originalname → 'rsn_wiki.pdf'
@@ -29,14 +30,13 @@ const uploadDocumentsPost = [
     const chunks = await chunkText(parsedText);
 
     // Chunk the text
-    console.log(`Total chunks: ${chunks.length}`);
-    chunks.forEach((chunk, i) => {
-      console.log(`\n--- Chunk ${i} (${chunk.length} chars) ---`);
-      console.log(chunk);
-    });
     // For each chunk, get an embedding
+    for (const chunk of chunks) {
+      const embedding = await requestEmbedding(chunk);
+      console.log(embedding);
+      // Upload this record to the "chunks" table along with the correct fk
+    }
     // TODO: Make a fetch to the ollama embedding api
-    // Upload this record to the "chunks" table along with the correct fk
     res.json(
       responseFactory.createJsonResponse({
         message: 'Uploaded <filename> how to get?',
