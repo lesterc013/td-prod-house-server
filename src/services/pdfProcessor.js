@@ -1,10 +1,11 @@
 import { PDFParse } from 'pdf-parse';
 import { createWorker } from 'tesseract.js';
 
-const IS_TEXT_PARSABLE_NUM_CHARS_THRESHOLD = 150; // Referenced from netdocuments ocr service.
+const NUM_CHARS_OCR_THRESHOLD = 150; // Referenced from netdocuments ocr service.
 // pdf.js (underlying library used to display the pdf contents by pdf-parse defaults to 72dpi
 // Scaling by 4.17 should make the image 300 dpi to improve OCR results.
 const SCALE_MULTIPLIER_TO_300_DPI = 4.17;
+const TESSERACT_WORKER_ENGLISH_PARAM = 'eng';
 
 /**
  * Takes in a buffer of the pdf file. Returns the text as a concatenated string.
@@ -13,46 +14,42 @@ const SCALE_MULTIPLIER_TO_300_DPI = 4.17;
 export async function extractTextFromPdf(buffer) {
   let parsedText = '';
 
-  // Assume entire buffer is text glyph. Parse the entire buffer first.
+  const tesseractWorker = await createWorker(TESSERACT_WORKER_ENGLISH_PARAM);
+
+  // Assume entire buffer is text glyph. Parse the entire buffer using getText first.
   const parser = new PDFParse({ data: buffer });
-  const parseResult = await parser.getText({ pageJoiner: '' });
-  await parser.destroy();
-  parsedText = parseResult.text;
+  const result = await parser.getText({ pageJoiner: '' });
 
-  const totalChars = parseResult.text.trim().length;
-  const totalPages = parseResult.total;
-  const avgCharsPerPage = Math.floor(totalChars / totalPages);
+  // result.pages is an array of {text, num (page number)}
+  // Iterate through these to see if a page's text is below char threshold i.e. use OCR to extract text.
+  for (let i = 0; i < result.pages.length; i++) {
+    const { text, num: pageNum } = result.pages[i];
+    const numCharsOnPage = text.trim().length;
+    let textOfPage = text;
 
-  // Check if the pdf was indeed text-glyph or image-based
-  // Use OCR if the pdf did not have text glyphs ie no text parsed out.
-  if (avgCharsPerPage <= IS_TEXT_PARSABLE_NUM_CHARS_THRESHOLD) {
-    console.log(
-      `Avg chars per pg: ${avgCharsPerPage}. Should be image based pdf. Use OCR.`,
-    );
-    // TODO: [improve ocr results] Include binarization, noise reduction as improvements
-
-    console.log('Converting pdf pages to pngs..');
-    const pngParser = new PDFParse({ data: buffer });
-    // .pages is a Screenshot[]
-    const pngs = await pngParser.getScreenshot({
-      scale: SCALE_MULTIPLIER_TO_300_DPI,
-    });
-    await pngParser.destroy();
-
-    console.log('Extracting text from pngs..');
-    for (let i = 0; i < pngs.pages.length; i++) {
-      const pngBuffer = Buffer.from(pngs.pages[i].data);
-      // Using Tesseract.js to extract text from images.
-      const worker = await createWorker('eng');
+    // Reassign textOfPage value to OCR parsed text if numChars below threshold.
+    if (numCharsOnPage <= NUM_CHARS_OCR_THRESHOLD) {
+      console.log(
+        `Num chars on page ${pageNum} (${numCharsOnPage}) lesser than threshold ${NUM_CHARS_OCR_THRESHOLD}. Could be image page. Use OCR.`,
+      );
+      // getScreenshot of this page
+      const screenshot = await parser.getScreenshot({
+        scale: SCALE_MULTIPLIER_TO_300_DPI,
+        partial: [pageNum],
+      });
+      const pngBuffer = Buffer.from(screenshot.pages[0].data);
+      // Use tesseract
       const {
         data: { text },
-      } = await worker.recognize(pngBuffer);
-
-      // Append every page's OCR-ed text to parsedText.
-      parsedText += text + '\n';
-      await worker.terminate();
+      } = await tesseractWorker.recognize(pngBuffer);
+      textOfPage = text;
     }
+
+    parsedText += `${textOfPage}\n`;
   }
+
+  await parser.destroy();
+  await tesseractWorker.terminate();
 
   return parsedText;
 }
