@@ -1,3 +1,4 @@
+// Utils
 import { uploadToMemory } from '../middleware/upload.js';
 import responseFactory from '../utils/responseFactory.js';
 
@@ -5,6 +6,10 @@ import responseFactory from '../utils/responseFactory.js';
 import { extractTextFromPdf } from '../services/pdfProcessor.js';
 import { chunkText } from '../services/textChunker.js';
 import { requestEmbedding } from '../services/llm.js';
+
+// DB Queries
+import { insertDocumentDb } from '../db/documentsQueries.js';
+import { insertChunkDb } from '../db/chunksQueries.js';
 
 // After multer processing:
 // req.file.originalname → 'rsn_wiki.pdf'
@@ -27,16 +32,19 @@ const uploadDocumentsPost = [
     // Assume can parse out text:
     const buffer = req.file.buffer;
     const parsedText = await extractTextFromPdf(buffer);
-    const chunks = await chunkText(parsedText);
 
-    // Chunk the text
+    // Upload the document name to DB so we can get the document_id for chunks fk reference.
+    const docId = await insertDocumentDb(req.file.originalname);
+
+    const chunks = await chunkText(parsedText);
     // For each chunk, get an embedding
     for (const chunk of chunks) {
       const embedding = await requestEmbedding(chunk);
-      console.log(embedding);
-      // Upload this record to the "chunks" table along with the correct fk
+      const chunkId = await insertChunkDb(docId, chunk, embedding);
     }
-    // TODO: Make a fetch to the ollama embedding api
+    console.log(
+      `Document inserted with id: ${docId}. Chunks inserted: ${chunks.length}`,
+    );
     res.json(
       responseFactory.createJsonResponse({
         message: 'Uploaded <filename> how to get?',
