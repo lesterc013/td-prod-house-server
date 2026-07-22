@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import { PDFParse } from 'pdf-parse';
 import { createWorker } from 'tesseract.js';
 
@@ -8,8 +9,19 @@ const SCALE_MULTIPLIER_TO_300_DPI = 4.17;
 const TESSERACT_WORKER_ENGLISH_PARAM = 'eng';
 
 /**
+ * Takes in the pdf file path. Returns the extracted text as a string.
+ * @param {string} pdfFilePath
+ * @returns string: Extracted text from the PDF file
+ */
+export async function extractTextFromPdfFile(pdfFilePath) {
+  const buffer = await fs.readFile(pdfFilePath);
+  return await extractTextFromPdfBuffer(buffer);
+}
+
+/**
  * Takes in a buffer of the pdf file. Returns the text as a concatenated string.
  * @param {*} buffer
+ * @returns string: Extracted text of the PDF file buffer.
  */
 export async function extractTextFromPdfBuffer(buffer) {
   let parsedText = '';
