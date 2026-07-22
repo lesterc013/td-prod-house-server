@@ -1,3 +1,5 @@
+import AppError from '../utils/AppError.js';
+
 export async function requestEmbedding(input) {
   const res = await fetch(process.env.EMBEDDING_ENDPOINT, {
     method: 'POST',
@@ -6,6 +8,17 @@ export async function requestEmbedding(input) {
       input,
     }),
   });
+
+  // Need a res.ok check cos with fetch, status codes like 404 or 500 dont throw errors,
+  // as the promise is still considered resolved.
+  if (!res.ok) {
+    throw new AppError(
+      `Embedding request failed. Response original text: ${res.statusText} — is ngrok running?`,
+      res.status,
+      null,
+    );
+  }
+
   const data = await res.json();
   return data.embeddings[0];
 }
