@@ -1,5 +1,10 @@
 import AppError from '../utils/AppError.js';
 
+/**
+ * Takes in a chunk as a string, makes a call to ollama embedding endpoint, returns the number[] containing the embeddings of that chunk.
+ * @param {string} input
+ * @returns number[] that contains the required embeddings.
+ */
 export async function requestEmbedding(input) {
   const res = await fetch(process.env.EMBEDDING_ENDPOINT, {
     method: 'POST',
