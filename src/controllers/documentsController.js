@@ -3,7 +3,7 @@ import { uploadToMemory } from '../middleware/upload.js';
 import responseFactory from '../utils/responseFactory.js';
 
 // Services
-import { extractTextFromPdf } from '../services/pdfProcessor.js';
+import { extractTextFromPdfBuffer } from '../services/pdfProcessor.js';
 import { chunkText } from '../services/textChunker.js';
 import { requestEmbedding } from '../services/llm.js';
 
@@ -31,7 +31,7 @@ const uploadDocumentsPost = [
 
     // Assume can parse out text:
     const buffer = req.file.buffer;
-    const parsedText = await extractTextFromPdf(buffer);
+    const parsedText = await extractTextFromPdfBuffer(buffer);
 
     // Upload the document name to DB so we can get the document_id for chunks fk reference.
     const docId = await insertDocumentDb(req.file.originalname);

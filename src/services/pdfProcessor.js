@@ -11,7 +11,7 @@ const TESSERACT_WORKER_ENGLISH_PARAM = 'eng';
  * Takes in a buffer of the pdf file. Returns the text as a concatenated string.
  * @param {*} buffer
  */
-export async function extractTextFromPdf(buffer) {
+export async function extractTextFromPdfBuffer(buffer) {
   let parsedText = '';
 
   const tesseractWorker = await createWorker(TESSERACT_WORKER_ENGLISH_PARAM);
