@@ -9,7 +9,7 @@ import { requestEmbedding } from '../services/llm.js';
 
 // DB Queries
 import { insertDocumentDb } from '../db/documentsQueries.js';
-import { insertChunkDb } from '../db/chunksQueries.js';
+import { getSimilarChunksDb, insertChunkDb } from '../db/chunksQueries.js';
 
 // After multer processing:
 // req.file.originalname → 'rsn_wiki.pdf'
@@ -76,6 +76,16 @@ const uploadDocumentsPost = [
  */
 async function queryDocumentsPost(req, res, next) {
   const { query } = req.body;
+
+  // Embed query
+  const queryEmbedding = await requestEmbedding(query);
+  // Find the top k semantically similar chunks in the db - use pgvector library to help
+  const kMostSimilarChunks = await getSimilarChunksDb(queryEmbedding, 5);
+  console.log(`--- Query: ${query}, Chunks:`);
+  console.log(kMostSimilarChunks);
+  // Concat query + chunks into system prompt - I should have a utils script for this to generate the sys prompt
+  // Send POST to ollama generation endpoint - llm.js
+  // Get the results
 
   res.json(
     responseFactory.createJsonResponse({
