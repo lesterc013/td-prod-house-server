@@ -8,3 +8,21 @@ export async function insertChunkDb(documentId, content, embedding) {
   );
   return res.rows[0].id;
 }
+
+/**
+ * Searches DB for the k most cosine-similar chunks to the query.
+ * @param {number[]} queryEmbedding
+ * @param {number} k
+ * @returns ?
+ */
+export async function getSimilarChunksDb(queryEmbedding, k = 5) {
+  const res = await pool.query(
+    `SELECT content, 1 - (embedding <=> $1) AS similarity 
+    FROM chunks 
+    ORDER BY embedding <=> $1 
+    LIMIT $2`,
+    [pgvector.toSql(queryEmbedding), k],
+  );
+
+  return res.rows;
+}
