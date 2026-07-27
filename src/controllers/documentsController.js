@@ -16,8 +16,19 @@ import { insertChunkDb } from '../db/chunksQueries.js';
 // req.file.mimetype → 'application/pdf'
 // req.file.buffer → the raw file bytes, ~16.9MB — this is what pdf-parse will consume in step 2
 
+/**
+ * Array of middleware for the POST /documents/upload endpoints.
+ * First mw is to call multer's uploadToMemory to parse the pdf file.
+ * Second mw is the handler to upload the PDF and its chunks into the DB.
+ */
 const uploadDocumentsPost = [
   uploadToMemory.single('uploaded_file'),
+  /**
+   * Parses the PDF, get the embeddings of each chunk, upload to DB.
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async (req, res, next) => {
     console.log('--- PDF Uploaded. Commence parsing ---');
     // TODO: Need validate file type is pdf else throw error. Ref: upload.js
@@ -57,6 +68,23 @@ const uploadDocumentsPost = [
   },
 ];
 
+/**
+ * To handle the RAG query
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function queryDocumentsPost(req, res, next) {
+  const { query } = req.body;
+
+  res.json(
+    responseFactory.createJsonResponse({
+      message: `Successfully responded to query: "${query}"`,
+    }),
+  );
+}
+
 export default {
   uploadDocumentsPost,
+  queryDocumentsPost,
 };
