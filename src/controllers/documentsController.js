@@ -21,33 +21,37 @@ const uploadDocumentsPost = [
   async (req, res, next) => {
     console.log('--- PDF Uploaded. Commence parsing ---');
     // TODO: Need validate file type is pdf else throw error. Ref: upload.js
-
-    // Assuming all good with the file,
-    // Store it in "documents" first to get back the id.
-    // This will be used as the fk for each record in "chunks" for this document.
-
     // TODO: How to provide some form of loading percentage UI?
-    // TODO: Refactor all the business logic after all main functionality is done.
 
     // Assume can parse out text:
     const buffer = req.file.buffer;
     const parsedText = await extractTextFromPdfBuffer(buffer);
+    const textChunks = await chunkText(parsedText);
 
+    // Build up the arr of [textChunk, embedding]
+    const chunksDbEntries = [];
+    for (const text of textChunks) {
+      const embedding = await requestEmbedding(text);
+      chunksDbEntries.push([text, embedding]);
+    }
+
+    // Once all the textChunks have been embedded and their text stored,
     // Upload the document name to DB so we can get the document_id for chunks fk reference.
     const docId = await insertDocumentDb(req.file.originalname);
 
-    const chunks = await chunkText(parsedText);
-    // For each chunk, get an embedding
-    for (const chunk of chunks) {
-      const embedding = await requestEmbedding(chunk);
-      const chunkId = await insertChunkDb(docId, chunk, embedding);
+    // Then upload each chunkDbEntry to chunks DB.
+    for (const chunksDbEntry of chunksDbEntries) {
+      await insertChunkDb(docId, chunksDbEntry[0], chunksDbEntry[1]);
     }
+
+    const filename = req.file.originalname;
     console.log(
-      `Document inserted with id: ${docId}. Chunks inserted: ${chunks.length}`,
+      `Name: ${filename} inserted with id: ${docId}. Chunks inserted ${chunksDbEntries.length}`,
     );
+
     res.json(
       responseFactory.createJsonResponse({
-        message: 'Uploaded <filename> how to get?',
+        message: `Uploaded ${filename} successfully`,
       }),
     );
   },
