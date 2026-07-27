@@ -4,5 +4,6 @@ import documentsController from '../controllers/documentsController.js';
 const documentsRouter = Router();
 
 documentsRouter.post('/upload', documentsController.uploadDocumentsPost);
+documentsRouter.post('/query', documentsController.queryDocumentsPost);
 
 export default documentsRouter;
