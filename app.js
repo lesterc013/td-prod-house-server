@@ -7,6 +7,9 @@ const PORT = process.env.SERVER_PORT;
 
 const app = express();
 
+// MIDDLEWARE
+app.use(express.json());
+
 // ROUTES
 app.use('/', indexRouter);
 app.use('/documents', documentsRouter);
