@@ -2,17 +2,15 @@ import pool from './pool.js';
 import pgvector from 'pgvector/pg';
 import path from 'node:path';
 
-import { extractTextFromPdfFile } from '../services/pdfProcessor.js';
 import { insertDocumentDb } from './documentsQueries.js';
 import { insertChunkDb } from './chunksQueries.js';
 import { requestEmbedding } from '../services/llm.js';
-import { chunkText } from '../services/textChunker.js';
+import { splitMarkdown } from '../services/textChunker.js';
+import { extractMarkdownFromFile } from '../services/fileProcessor.js';
 
-const testPdfPath = path.join(
-  import.meta.dirname,
-  'dw8_five_star_weapons_guide.pdf',
-);
-const pdfName = 'dw8_five_star_weapons_guide';
+const pdfFilename = 'rsn_wiki_text.pdf';
+
+const testPdfPath = path.join(import.meta.dirname, pdfFilename);
 
 /**
  * To set up a clean and reproducible DB state.
@@ -33,15 +31,15 @@ async function seedDb() {
     await client.query('TRUNCATE TABLE documents RESTART IDENTITY CASCADE');
 
     // Insert test PDF to documents and chunks
-    const extractText = await extractTextFromPdfFile(testPdfPath);
+    const extractText = await extractMarkdownFromFile(testPdfPath);
 
     const docResult = await client.query(
       'INSERT INTO documents (name) VALUES ($1) RETURNING id',
-      [pdfName],
+      [pdfFilename],
     );
     const docId = docResult.rows[0].id;
 
-    const chunks = await chunkText(extractText);
+    const chunks = await splitMarkdown(extractText);
     for (const chunk of chunks) {
       const embedding = await requestEmbedding(chunk);
       // const chunkId = await insertChunkDb(docId, chunk, embedding);
@@ -53,7 +51,7 @@ async function seedDb() {
     }
     await client.query('COMMIT');
     console.log(
-      `Seeded document ${pdfName}. With id: ${docId}. Chunks inserted: ${chunks.length}`,
+      `Seeded document ${pdfFilename}. With id: ${docId}. Chunks inserted: ${chunks.length}`,
     );
   } catch (error) {
     await client.query('ROLLBACK');
