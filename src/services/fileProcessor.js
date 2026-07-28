@@ -33,5 +33,23 @@ export async function extractMarkdownFromBuffer(buffer, filename) {
   }
 
   const data = await res.json();
-  return data.document.md_content;
+  return cleanMarkdown(data.document.md_content);
+}
+
+function cleanMarkdown(markdown) {
+  return (
+    markdown
+      // Remove image placeholders
+      .replace(/<!--\s*image\s*-->/gi, '')
+      // Remove reference list lines (e.g. "41. [Some citation](url)")
+      .replace(/^\d+\.\s+\[.*?\]\(.*?\).*$/gm, '')
+      // Remove bare URLs left after ref removal
+      .replace(/^https?:\/\/\S+$/gm, '')
+      // Remove copyright/boilerplate lines
+      .replace(/^.*all rights reserved.*$/gim, '')
+      .replace(/^.*no part of this.*$/gim, '')
+      // Collapse 3+ newlines into 2
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  );
 }
