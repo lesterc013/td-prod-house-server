@@ -3,8 +3,8 @@ import { uploadToMemory } from '../middleware/upload.js';
 import responseFactory from '../utils/responseFactory.js';
 
 // Services
-import { extractTextFromPdfBuffer } from '../services/pdfProcessor.js';
-import { chunkText } from '../services/textChunker.js';
+import { extractMarkdownFromBuffer } from '../services/fileProcessor.js';
+import { splitMarkdown } from '../services/textChunker.js';
 import { requestEmbedding } from '../services/llm.js';
 
 // DB Queries
@@ -36,8 +36,13 @@ const uploadDocumentsPost = [
 
     // Assume can parse out text:
     const buffer = req.file.buffer;
-    const parsedText = await extractTextFromPdfBuffer(buffer);
-    const textChunks = await chunkText(parsedText);
+    const filename = req.file.originalname;
+    const markdownText = await extractMarkdownFromBuffer(buffer, filename);
+    const textChunks = await splitMarkdown(markdownText);
+    for (const oneSplit of textChunks) {
+      console.log(oneSplit);
+      console.log('--- End of one split ---');
+    }
 
     // Build up the arr of [textChunk, embedding]
     const chunksDbEntries = [];
@@ -46,8 +51,8 @@ const uploadDocumentsPost = [
       chunksDbEntries.push([text, embedding]);
     }
 
-    // Once all the textChunks have been embedded and their text stored,
-    // Upload the document name to DB so we can get the document_id for chunks fk reference.
+    // // Once all the textChunks have been embedded and their text stored,
+    // // Upload the document name to DB so we can get the document_id for chunks fk reference.
     const docId = await insertDocumentDb(req.file.originalname);
 
     // Then upload each chunkDbEntry to chunks DB.
@@ -55,7 +60,6 @@ const uploadDocumentsPost = [
       await insertChunkDb(docId, chunksDbEntry[0], chunksDbEntry[1]);
     }
 
-    const filename = req.file.originalname;
     console.log(
       `Name: ${filename} inserted with id: ${docId}. Chunks inserted ${chunksDbEntries.length}`,
     );
