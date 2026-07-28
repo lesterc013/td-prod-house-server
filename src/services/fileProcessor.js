@@ -1,4 +1,15 @@
-const DOCLING_API = 'http://localhost:5001/v1/convert/file';
+import fs from 'node:fs/promises';
+
+/**
+ * Takes in the file path. Returns the extracted text as a string.
+ * @param {string} filePath
+ * @returns string: Extracted text from the file
+ */
+export async function extractMarkdownFromFile(filePath) {
+  const buffer = await fs.readFile(filePath);
+  return await extractMarkdownFromBuffer(buffer);
+}
+
 /**
  * Takes in a file's buffer and returns the text as markdown. To help with a structured chunking strategy.
  * @param {Buffer<ArrayBufferLike>} buffer
@@ -12,7 +23,7 @@ export async function extractMarkdownFromBuffer(buffer, filename) {
   form.append('files', blob, filename);
   form.append('to_formats', 'md');
 
-  const res = await fetch(DOCLING_API, {
+  const res = await fetch(process.env.DOCLING_SERVE_ENDPOINT, {
     method: 'POST',
     body: form,
   });
