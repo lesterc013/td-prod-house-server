@@ -5,7 +5,7 @@ import responseFactory from '../utils/responseFactory.js';
 // Services
 import { extractMarkdownFromBuffer } from '../services/fileProcessor.js';
 import { splitMarkdown } from '../services/textChunker.js';
-import { requestEmbedding } from '../services/llm.js';
+import { generateAnswer, requestEmbedding } from '../services/llm.js';
 
 // DB Queries
 import { insertDocumentDb } from '../db/documentsQueries.js';
@@ -84,16 +84,22 @@ async function queryDocumentsPost(req, res, next) {
   // Embed query
   const queryEmbedding = await requestEmbedding(query);
   // Find the top k semantically similar chunks in the db - use pgvector library to help
-  const kMostSimilarChunks = await getSimilarChunksDb(queryEmbedding, 5);
-  console.log(`--- Query: ${query}, Chunks:`);
-  console.log(kMostSimilarChunks);
+  const kMostSimilarChunks = await getSimilarChunksDb(
+    queryEmbedding,
+    process.env.K_CHUNKS,
+  );
+  console.log(`--- Generating answer for query: ${query} ---`);
+  const modelResponse = await generateAnswer(query, kMostSimilarChunks);
   // Concat query + chunks into system prompt - I should have a utils script for this to generate the sys prompt
   // Send POST to ollama generation endpoint - llm.js
   // Get the results
 
   res.json(
     responseFactory.createJsonResponse({
-      message: `Successfully responded to query: "${query}"`,
+      message: {
+        modelResponse,
+        query,
+      },
     }),
   );
 }
