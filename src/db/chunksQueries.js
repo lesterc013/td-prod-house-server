@@ -15,13 +15,18 @@ export async function insertChunkDb(documentId, content, embedding) {
  * @param {number} k
  * @returns ?
  */
-export async function getSimilarChunksDb(queryEmbedding, k = 5) {
+export async function getSimilarChunksDb(
+  queryEmbedding,
+  k = 5,
+  docIdsToReference,
+) {
   const res = await pool.query(
     `SELECT content, 1 - (embedding <=> $1) AS similarity 
     FROM chunks 
+    WHERE document_id = ANY($3)
     ORDER BY embedding <=> $1 
     LIMIT $2`,
-    [pgvector.toSql(queryEmbedding), k],
+    [pgvector.toSql(queryEmbedding), k, docIdsToReference],
   );
 
   return res.rows;
