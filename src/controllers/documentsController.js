@@ -93,16 +93,20 @@ async function queryDocumentsPost(req, res, next) {
   );
   console.log(`--- Generating answer for query: ${query} ---`);
   const modelResponse = await generateAnswer(query, kMostSimilarChunks);
-  // Concat query + chunks into system prompt - I should have a utils script for this to generate the sys prompt
-  // Send POST to ollama generation endpoint - llm.js
-  // Get the results
+  const chunks = {};
+  docIdsToReference.forEach((docId) => {
+    const chunksForThisDocId = kMostSimilarChunks.filter(
+      (chunk) => chunk.document_id === docId,
+    );
+    chunks[docId] = chunksForThisDocId;
+  });
 
   res.json(
     responseFactory.createJsonResponse({
       message: {
         query,
         modelResponse,
-        chunks: kMostSimilarChunks,
+        chunks,
         numberOfChunks,
       },
     }),
