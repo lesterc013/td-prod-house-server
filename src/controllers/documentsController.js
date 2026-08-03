@@ -81,7 +81,7 @@ const numberOfChunks = process.env.K_CHUNKS;
  * @param {import('express').NextFunction} next
  */
 async function queryDocumentsPost(req, res, next) {
-  const { query } = req.body;
+  const { query, docIdsToReference } = req.body;
 
   // Embed query
   const queryEmbedding = await requestEmbedding(query);
@@ -89,6 +89,7 @@ async function queryDocumentsPost(req, res, next) {
   const kMostSimilarChunks = await getSimilarChunksDb(
     queryEmbedding,
     numberOfChunks,
+    docIdsToReference,
   );
   console.log(`--- Generating answer for query: ${query} ---`);
   const modelResponse = await generateAnswer(query, kMostSimilarChunks);
