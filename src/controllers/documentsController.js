@@ -72,6 +72,8 @@ const uploadDocumentsPost = [
   },
 ];
 
+const numberOfChunks = process.env.K_CHUNKS;
+
 /**
  * To handle the RAG query
  * @param {import('express').Request} req
@@ -86,7 +88,7 @@ async function queryDocumentsPost(req, res, next) {
   // Find the top k semantically similar chunks in the db - use pgvector library to help
   const kMostSimilarChunks = await getSimilarChunksDb(
     queryEmbedding,
-    process.env.K_CHUNKS,
+    numberOfChunks,
   );
   console.log(`--- Generating answer for query: ${query} ---`);
   const modelResponse = await generateAnswer(query, kMostSimilarChunks);
@@ -97,8 +99,10 @@ async function queryDocumentsPost(req, res, next) {
   res.json(
     responseFactory.createJsonResponse({
       message: {
-        modelResponse,
         query,
+        modelResponse,
+        chunks: kMostSimilarChunks,
+        numberOfChunks,
       },
     }),
   );
