@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import AppError from '../utils/AppError.js';
 
 /**
  * Takes in the file path. Returns the extracted text as a string.
@@ -23,17 +24,27 @@ export async function extractMarkdownFromBuffer(buffer, filename) {
   form.append('files', blob, filename);
   form.append('to_formats', 'md');
 
-  const res = await fetch(process.env.DOCLING_SERVE_ENDPOINT, {
-    method: 'POST',
-    body: form,
-  });
+  try {
+    const res = await fetch(process.env.DOCLING_SERVE_ENDPOINT, {
+      method: 'POST',
+      body: form,
+    });
 
-  if (!res.ok) {
-    throw new Error(`Docling error: ${res.statusText}`);
+    if (!res.ok) {
+      throw new Error(
+        `Docling promise rejected. Status text: ${res.statusText}`,
+      );
+    }
+
+    const data = await res.json();
+    return cleanMarkdown(data.document.md_content);
+  } catch (err) {
+    throw new AppError(
+      `Docling service error. Original error message: ${err.message}`,
+      err.statusCode ?? 503,
+      err,
+    );
   }
-
-  const data = await res.json();
-  return cleanMarkdown(data.document.md_content);
 }
 
 function cleanMarkdown(markdown) {
