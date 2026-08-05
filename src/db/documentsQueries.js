@@ -24,18 +24,20 @@ export async function getAllDocumentsDb() {
  * @returns Properties of the deleted document.
  */
 export async function deleteDocumentDb(id) {
+  let res;
   try {
-    const res = await pool.query(
-      `DELETE FROM documents WHERE id = $1 RETURNING id`,
-      [id],
-    );
-    if (res.rowCount === 0) {
-      throw new AppError(`Document with id ${id} not found`, 404, null);
-    }
-    return res.rows[0].id;
+    res = await pool.query(`DELETE FROM documents WHERE id = $1 RETURNING id`, [
+      id,
+    ]);
   } catch (err) {
     throw new AppError(`Failed to delete document: ${err.message}`, 500, err);
   }
+
+  if (res.rowCount === 0) {
+    throw new AppError(`Document with id ${id} not found`, 404, null);
+  }
+
+  return res.rows[0].id;
 }
 
 /**
