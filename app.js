@@ -2,6 +2,7 @@ import express from 'express';
 import indexRouter from './src/routes/indexRouter.js';
 import responseFactory from './src/utils/responseFactory.js';
 import documentsRouter from './src/routes/documentsRouter.js';
+import { requestLogger } from './src/middleware/requestLogger.js';
 
 const PORT = process.env.SERVER_PORT;
 
@@ -9,6 +10,7 @@ const app = express();
 
 // MIDDLEWARE
 app.use(express.json());
+app.use(requestLogger);
 
 // ROUTES
 app.use('/', indexRouter);
