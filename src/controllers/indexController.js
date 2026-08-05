@@ -1,13 +1,23 @@
-import AppError from '../utils/AppError.js';
 import responseFactory from '../utils/responseFactory.js';
 
-/** @type {import("express").RequestHandler} */
-function getIndex(req, res, next) {
-  try {
-    res.json(responseFactory.createJsonResponse({ message: 'Hello World' }));
-  } catch (error) {
-    next(new AppError(error.message, error.statusCode, error));
-  }
+import { getAllDocumentsDb } from '../db/documentsQueries.js';
+
+/**
+ * Fills response with the data required to populate '/' path:
+ * - List of documents uploaded so far
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function getIndex(req, res, next) {
+  const docs = await getAllDocumentsDb();
+  res.json(
+    responseFactory.createJsonResponse({
+      message: {
+        docs,
+      },
+    }),
+  );
 }
 
 export default {
