@@ -26,7 +26,7 @@ export async function getAllDocumentsDb() {
 export async function deleteDocumentDb(id) {
   let res;
   try {
-    res = await pool.query(`DELETE FROM documents WHERE id = $1 RETURNING id`, [
+    res = await pool.query(`DELETE FROM documents WHERE id = $1 RETURNING *`, [
       id,
     ]);
   } catch (err) {
@@ -37,7 +37,7 @@ export async function deleteDocumentDb(id) {
     throw new AppError(`Document with id ${id} not found`, 404, null);
   }
 
-  return res.rows[0].id;
+  return res.rows[0];
 }
 
 /**
