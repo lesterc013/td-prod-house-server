@@ -39,10 +39,6 @@ const uploadDocumentsPostMiddlewareArray = [
     const filename = req.file.originalname;
     const markdownText = await extractMarkdownFromBuffer(buffer, filename);
     const textChunks = await splitMarkdown(markdownText);
-    for (const oneSplit of textChunks) {
-      console.log(oneSplit);
-      console.log('--- End of one split ---');
-    }
 
     // Build up the arr of [textChunk, embedding]
     const chunksDbEntries = [];
