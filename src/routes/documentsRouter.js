@@ -8,6 +8,6 @@ documentsRouter.post(
   documentsController.uploadDocumentsPostMiddlewareArray,
 );
 documentsRouter.post('/query', documentsController.queryDocumentsPost);
-// documentsRouter.delete('/:id');
+documentsRouter.delete('/:id', documentsController.deleteOneDocument);
 
 export default documentsRouter;
