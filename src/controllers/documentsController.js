@@ -21,7 +21,7 @@ import { getSimilarChunksDb, insertChunkDb } from '../db/chunksQueries.js';
  * First mw is to call multer's uploadToMemory to parse the pdf file.
  * Second mw is the handler to upload the PDF and its chunks into the DB.
  */
-const uploadDocumentsPost = [
+const uploadDocumentsPostMiddlewareArray = [
   uploadToMemory.single('uploaded_file'),
   /**
    * Parses the PDF, get the embeddings of each chunk, upload to DB.
@@ -114,6 +114,6 @@ async function queryDocumentsPost(req, res, next) {
 }
 
 export default {
-  uploadDocumentsPost,
+  uploadDocumentsPostMiddlewareArray,
   queryDocumentsPost,
 };

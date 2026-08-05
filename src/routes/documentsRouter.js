@@ -3,7 +3,11 @@ import documentsController from '../controllers/documentsController.js';
 
 const documentsRouter = Router();
 
-documentsRouter.post('/upload', documentsController.uploadDocumentsPost);
+documentsRouter.post(
+  '/upload',
+  documentsController.uploadDocumentsPostMiddlewareArray,
+);
 documentsRouter.post('/query', documentsController.queryDocumentsPost);
+// documentsRouter.delete('/:id');
 
 export default documentsRouter;
