@@ -8,7 +8,7 @@ import { splitMarkdown } from '../services/textChunker.js';
 import { generateAnswer, requestEmbedding } from '../services/llm.js';
 
 // DB Queries
-import { insertDocumentDb } from '../db/documentsQueries.js';
+import { insertDocumentDb, deleteDocumentDb } from '../db/documentsQueries.js';
 import { getSimilarChunksDb, insertChunkDb } from '../db/chunksQueries.js';
 
 // After multer processing:
@@ -113,7 +113,28 @@ async function queryDocumentsPost(req, res, next) {
   );
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function deleteOneDocument(req, res, next) {
+  // Retrieve the paramter from the req
+  const { id } = req.params;
+  // Call db delete query with the id
+  const deletedDocument = await deleteDocumentDb(id);
+  // Return the res with the deleted item.
+  res.json(
+    responseFactory.createJsonResponse({
+      message: {
+        deletedDocument,
+      },
+    }),
+  );
+}
+
 export default {
   uploadDocumentsPostMiddlewareArray,
   queryDocumentsPost,
+  deleteOneDocument,
 };
